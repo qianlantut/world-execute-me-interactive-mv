@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>world.execute(me); — The Glass Garden</title>
+<style>/*__STYLE__*/</style>
+</head>
+<body>
+<main id="film" aria-label="world.execute(me); 音乐影像">
+<canvas id="stage"></canvas>
+<div id="grain"></div><div class="matte top"></div><div class="matte bottom"></div>
+<header id="mast"><span>THE GLASS GARDEN · LYRICS BY MILI</span><span>MILI · WORLD.EXECUTE(ME);</span><span id="sceneNumber">A FILM IN EIGHT MOVEMENTS</span></header>
+<section id="cover">
+<div class="overline">AN INTERACTIVE LYRIC FILM · 含 AI 生成图像</div>
+<h1>world.<br><em>execute</em><span>(me);</span></h1>
+<div class="cover-bottom"><p>在玻璃花园里，<br>最后的回应，一封未寄出的信。</p><button id="start" disabled><span id="startLabel">正在唤醒花园</span><b>↗</b></button><small>音乐 / Mili<br>角色 / GPT · DeepSeek · Claude<br>触碰光点与人物，音乐始终继续。</small></div>
+</section>
+<div id="cinemaText" aria-hidden="true"><div id="sceneCode"></div><div id="sceneWord"></div><div id="sceneCaption"></div></div>
+<div id="end" hidden><h2>EXECUTION</h2><button id="replay">重新播放 ↻</button><small class="credits">音乐 · Mili<br>主要形象设计参考 · <a href="https://www.bilibili.com/video/BV1tE9XBbErS/" target="_blank" rel="noopener noreferrer">ZipZipPipe</a><br>鲸鱼娘早期形象来源 · <a href="https://www.bilibili.com/opus/1231977657712771073" target="_blank" rel="noopener noreferrer">上善无形</a><br><span>鲸鱼娘设计由 ZipZipPipe 基于早期形象再创作<br>本片组件依照参考重新生成 · 含 AI 生成内容</span></small></div>
+<nav id="chapters" aria-label="跳转章节" hidden></nav>
+<footer id="controls">
+<button id="toggle" aria-label="播放或暂停">▶</button><span id="clock">00:00 / 03:32</span><input id="seek" aria-label="播放进度" type="range" min="0" max="212.33" step="0.01" value="0"><button id="chapterButton" aria-label="选择章节">章节</button><button id="languageButton" aria-label="切换中英文歌词">中文</button><button id="lyricButton" aria-label="载入本地 LRC 歌词">载入歌词</button><button id="mute" aria-label="静音">声音 开</button><button id="quality" aria-label="切换画质">高画质</button><button id="fullscreen" aria-label="全屏">⛶</button>
+</footer>
+<div id="hint">空格 暂停 · ← → 跳转 · F 全屏 · H 隐藏界面</div>
+<input id="lyricFile" type="file" accept=".lrc,text/plain" hidden><p id="lyricStatus" role="status" hidden></p>
+<div id="error" hidden></div>
+</main>
+<script>/*__THREE__*/</script>
+<script>const ASSETS=/*__ASSETS__*/;const AUDIO_DATA=/*__AUDIO__*/;</script>
+<script>/*__APP__*/</script>
+</body></html>

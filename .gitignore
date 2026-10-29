@@ -1,0 +1,22 @@
+# Local music and private recordings are never source-control inputs.
+/music/*
+!/music/README.md
+*.m4a
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.mp4
+*.webm
+/dist/
+/releases/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+node_modules/
+playwright-report/
+test-results/

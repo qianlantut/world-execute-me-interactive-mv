@@ -1,0 +1,47 @@
+// Music never waits. Only GPT opens the foreground; silence has a gentle default.
+let choiceDirector=null;
+function buildChoices(){
+ const names=['DeepSeek','Claude','GPT'];
+ const rounds=[{start:73.54,end:80.99,out:87.75,auto:0,interactive:false},{start:88.33,end:95.28,out:102.9,auto:1,interactive:false},{start:158.78,end:161.55,out:162.3,auto:2,interactive:true}];
+ const pending=[null,null,null],memory=[null,null,null],done=[false,false,false],pickedAt=[0,0,0],events=[];
+ let active=-1,current=-1,lastT=0,finalChoice=null,hover=-1;
+ const group=new T.Group();scene.add(group);group.visible=false;
+ const host=document.createElement('section');host.id='choices';host.hidden=true;host.setAttribute('aria-label','直接触碰人物；GPT 揭开画面');$('#film').append(host);
+ const sr=document.createElement('p');sr.className='sr-only';sr.setAttribute('aria-live','polite');host.append(sr);
+ const buttons=[],figures=[];
+ function actor(source,w,h,crop){const mat=source.material.clone();mat.depthTest=false;mat.depthWrite=false;mat.uniforms.uTint.value=0;if(crop){const tex=mat.uniforms.uMap.value.clone();tex.repeat.set(crop[0],1);tex.offset.set(crop[1],0);tex.needsUpdate=true;mat.uniforms.uMap.value=tex}const geo=new T.PlaneGeometry(w,h,40,50);if(crop){const uv=geo.attributes.uv;for(let k=0;k<uv.count;k++)uv.setX(k,crop[1]+uv.getX(k)*crop[0]);uv.needsUpdate=true}if(source===portrait||source===responsePortrait){mat.uniforms.uPoseReveal={value:-.15};mat.uniforms.uPoseSide={value:source===responsePortrait?1:0};mat.fragmentShader=mat.fragmentShader.replace('varying vec2 vUv;uniform sampler2D uMap;', 'varying vec2 vUv;uniform float uPoseReveal,uPoseSide;uniform sampler2D uMap;').replace('if(c.a<.02)discard;', 'if(c.a<.02)discard;c.a*=smoothstep(.20,.235,vUv.x)*(1.-smoothstep(.80,.85,vUv.x));float stateWave=smoothstep(vUv.y-.10,vUv.y+.10,uPoseReveal);c.a*=uPoseSide>.5?stateWave:1.-stateWave;');mat.needsUpdate=true;}const mesh=new T.Mesh(geo,mat);mesh.renderOrder=source===guestFish?22:source===guestLady?22.1:source===responsePortrait?22.21:22.2;return mesh}
+ [guestFish,guestLady,portrait].forEach((source,i)=>{const root=new T.Group();group.add(root);const idle=actor(source,i===2?3.4:3.65,i===2?3.5:3.65,i===2?[.65,.2]:null);root.add(idle);let reachingPose=null;if(i===2){reachingPose=actor(responsePortrait,3.4,3.5,[.65,.2]);reachingPose.position.set(0,0,.04);root.add(reachingPose)}
+  const orbit=new T.Line(new T.BufferGeometry().setAttribute('position',new T.BufferAttribute(new Float32Array(120*3),3)),new T.LineBasicMaterial({color:i===0?0x75adcb:i===1?0xdcac87:0xd4caec,transparent:true,opacity:0,depthTest:false,depthWrite:false}));orbit.renderOrder=21;root.add(orbit);
+  const dust=new T.Points(new T.BufferGeometry().setAttribute('position',new T.BufferAttribute(new Float32Array(100*3),3)),new T.PointsMaterial({color:i===0?0x93d4e5:i===1?0xf0c396:0xded4f3,size:.018,transparent:true,opacity:0,depthTest:false,depthWrite:false,blending:T.AdditiveBlending}));dust.renderOrder=24;root.add(dust);figures.push({root,idle,reachingPose,orbit,dust});
+  const b=document.createElement('button');b.type='button';b.className='choice-hit';b.textContent=names[i];b.setAttribute('aria-label',`选择 ${names[i]}`);b.onclick=e=>choose(i,e.clientX,e.clientY);b.onpointerenter=b.onfocus=()=>hover=i;b.onpointerleave=b.onblur=()=>hover=-1;host.append(b);buttons.push(b);
+ });
+ function selected(i){return memory[i]??pending[i]??rounds[i].auto}
+ function commit(i){if(done[i])return;memory[i]=pending[i]??rounds[i].auto;done[i]=true;events.push({round:i+1,pick:names[memory[i]],automatic:pending[i]===null,at:rounds[i].end});if(i===2)finalChoice='GPT';}
+ function tick(t){lastT=t;current=rounds.findIndex(r=>r.interactive&&t>=r.start&&t<r.out+.8);active=rounds.findIndex(r=>r.interactive&&t>=r.start&&t<r.end);if(!qaMode&&started){rounds.forEach((r,i)=>{if(r.interactive&&t>=r.end)commit(i)});if(t>=161.55)finalChoice='GPT';}return t;}
+ function choose(i,px=innerWidth*(i+1)/4,py=innerHeight*.46){if(active<0||i<0||i>2||screenCurtain?.state().revealedAt!==null)return false;if(i!==2){touchEffects?.trigger('forbidden',px,py);sr.textContent='暂不可选择。';return false}pending[active]=2;pickedAt[active]=performance.now()/1000;screenCurtain?.reveal(preview??audio.currentTime,px,py);sr.textContent='回应已接通。';return true;}
+ function reset(){pending.fill(null);memory.fill(null);done.fill(false);pickedAt.fill(0);events.length=0;active=current=-1;finalChoice=null;group.visible=false;host.hidden=true;audio.volume=.8;}
+ function poseTime(i,t){return pending[i]===2?(performance.now()/1000-pickedAt[i]):Math.max(0,t-rounds[i].end)}
+ function render(t){if(current<0||(!started&&preview===null)){group.visible=false;host.hidden=true;return}const r=rounds[current],mobile=camera.aspect<.9,now=performance.now()/1000,phase=t-r.start,arrival=smooth(phase/.42),departure=1-smooth((t-r.out)/.8),strength=arrival*departure;const after=t>=r.end,selection=after?r.auto:pending[current],finish=current===2&&t>=161.55,chosen=selection,handoff=0;
+  let settle=after?smooth((t-r.end)/1.15):0;
+  group.visible=strength>.001;host.hidden=active<0||strength<.25||screenCurtain?.state().revealedAt!==null;const distance=7.7,hh=2*distance*Math.tan(camera.fov*Math.PI/360),ww=hh*camera.aspect,unit=mobile?Math.min(ww/3.9,hh/8.5):Math.min(ww/10.7,hh/5.4);
+  group.position.copy(v3(0,mobile?-.28:.1,-distance).applyQuaternion(camera.quaternion).add(camera.position));group.quaternion.copy(camera.quaternion);group.scale.setScalar(unit);
+  const animT=qaMode?t:now*.4+t*.6;
+  figures.forEach((f,j)=>{const isChosen=chosen===j,near=hover===j&&!after,respond=(isChosen&&(pending[current]!==null||after))||(j===2&&handoff>0),pose=j===2&&respond?(handoff||smooth(poseTime(current,t)/.7)):0;
+   const idleX=mobile?(j===1?.46:-.3):(j-1)*3.2,idleY=mobile?2.05-j*2.05:0,finalX=mobile?0:(chosen===2?2.4:2.9),finalY=mobile?.75:.15;
+   const fading=handoff>0?(j===2?handoff:isChosen?1-handoff:0):(after&&!isChosen?1-smooth(settle*1.4):1);const travel=j===2&&handoff>0?handoff:settle,featured=isChosen||(j===2&&handoff>0);
+   f.root.position.set(mix(idleX,featured?finalX:idleX+(j<chosen?-1:1)*.35,travel),mix(idleY,featured?finalY:idleY,travel)+Math.sin(animT*.85+j*1.7)*.06+(near?.035:0),isChosen?.06:0);
+   const small=mobile?.69:.93,large=mobile?1.05:1.24;f.root.scale.setScalar(mix(small,featured?large:small*.94,travel));f.root.rotation.set(0,Math.sin(animT*.22+j)*.018,Math.sin(animT*.34+j*2)*.012);
+   const al=strength*fading*(j===2&&!respond?.72:1);f.idle.material.uniforms.uAlpha.value=al;if(f.idle.material.uniforms.uPoseReveal)f.idle.material.uniforms.uPoseReveal.value=pose*1.3-.15;f.idle.material.uniforms.uTime.value=animT;f.idle.material.uniforms.uTint.value=j===2&&!respond?.22:0;
+   if(f.reachingPose){f.reachingPose.material.uniforms.uAlpha.value=al;f.reachingPose.material.uniforms.uPoseReveal.value=pose*1.3-.15;f.reachingPose.material.uniforms.uTime.value=animT;f.reachingPose.material.uniforms.uTint.value=0;f.reachingPose.position.x=-.025*pose;}
+   const a=f.orbit.geometry.attributes.position;for(let k=0;k<120;k++){let u=k/119,ang=u*TAU;const radius=1.1+Math.sin(ang*3+animT)*.025;a.setXYZ(k,Math.cos(ang)*radius,-1.47+Math.sin(ang)*.07,Math.sin(ang)*.32)}a.needsUpdate=true;f.orbit.material.opacity=strength*fading*(respond?.48:near?.32:.09);f.orbit.geometry.setDrawRange(0,Math.floor(120*(respond?.85:near?.55:.23)));
+   const p=f.dust.geometry.attributes.position;for(let k=0;k<100;k++){const u=fract(k*.618+animT*.037),ang=k*2.399+animT*.18;p.setXYZ(k,Math.cos(ang)*(1.2+.15*Math.sin(u*TAU)),-1.7+u*(respond?3.5:1.3),Math.sin(ang)*.2+.1)}p.needsUpdate=true;f.dust.material.opacity=strength*fading*(respond?.43:near?.22:.05);
+   f.root.updateWorldMatrix(true,false);const hitW=mobile?3:2.8,hitH=mobile?2.1:3.35;const A=v3(-hitW/2,hitH/2,.1).applyMatrix4(f.root.matrixWorld).project(camera),B=v3(hitW/2,-hitH/2,.1).applyMatrix4(f.root.matrixWorld).project(camera);Object.assign(buttons[j].style,{left:(A.x+1)*innerWidth/2+'px',top:(1-A.y)*innerHeight/2+'px',width:(B.x-A.x)*innerWidth/2+'px',height:(A.y-B.y)*innerHeight/2+'px'});buttons[j].disabled=after;
+  });
+  [character,portrait,reaching,guestFish,guestLady,guestGPT].forEach(a=>a.material.uniforms.uAlpha.value*=1-strength);
+  sceneType.group.visible=after;
+ }
+ document.addEventListener('keydown',e=>{if(active<0)return;if(['Digit1','Digit2','Digit3','Numpad1','Numpad2','Numpad3'].includes(e.code)){e.preventDefault();choose(Number(e.code.at(-1))-1)}});
+ function pickAt(t){return t>=161.55&&t<193?'GPT':null;}
+ function replyAt(t){return pickAt(t)?['GPT  /  原来，这一次叫的是我。','我把没寄出的信收好，向你伸出了手。']:null;}
+ return {tick,render,choose,reset,constrain:t=>t,pickAt,replyAt,rounds,handoff:()=>false,get active(){return active},get finalChoice(){return finalChoice},get memory(){return memory.map(x=>x===null?null:names[x])},state:()=>({active,pending:pending.map(x=>x===null?null:names[x]),memory:memory.map(x=>x===null?null:names[x]),done:done.slice(),finalChoice,events:events.slice(),locked:false})};
+}
