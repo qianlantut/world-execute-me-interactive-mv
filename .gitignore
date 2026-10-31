@@ -20,3 +20,22 @@ Thumbs.db
 node_modules/
 playwright-report/
 test-results/
+
+# Versioned release source only: never commit working copies or generated builds.
+**/dist/
+**/music/*
+!**/music/README.md
+**/node_modules/
+**/work/
+**/_backup*/
+**/recording*/
+**/playwright-report/
+**/test-results/
+*.zip
+*.rar
+*.7z
+*.log
+*.tmp
+*.bak
+*.mov
+*.mkv

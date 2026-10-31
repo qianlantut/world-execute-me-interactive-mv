@@ -1,0 +1,46 @@
+// The second scene runs behind the damaged foreground. Revealing it never seeks audio.
+let screenCurtain=null;
+function buildScreenCurtain(){
+ const movie=buildAfterworld(),back=movie.scene,cam=movie.camera;
+ const target=new T.WebGLRenderTarget(1280,720,{depthBuffer:true,type:T.HalfFloatType,samples:4}),snapshot=new T.WebGLRenderTarget(1280,720,{depthBuffer:true});const overlay=new T.Scene();const glass=new T.Scene(),glassCam=new T.OrthographicCamera(-1,1,1,-1,-10,20);glassCam.position.z=5;
+ const pieces=[];let revealedAt=null,needsCapture=false,lastT=0,behindRenderedAt=null,auto=false,focus=new T.Vector2(.5,.5);
+ function triangulate(points){const p=points.concat([[-8,-8],[9,-8],[.5,10]]),n=points.length;let tris=[[n,n+1,n+2]];
+  function inside(tri,q){const [a,b,c]=tri.map(i=>p[i]),d=2*(a[0]*(b[1]-c[1])+b[0]*(c[1]-a[1])+c[0]*(a[1]-b[1]));if(Math.abs(d)<1e-10)return false;const aa=a[0]**2+a[1]**2,bb=b[0]**2+b[1]**2,cc=c[0]**2+c[1]**2,x=(aa*(b[1]-c[1])+bb*(c[1]-a[1])+cc*(a[1]-b[1]))/d,y=(aa*(c[0]-b[0])+bb*(a[0]-c[0])+cc*(b[0]-a[0]))/d;return (q[0]-x)**2+(q[1]-y)**2<=(a[0]-x)**2+(a[1]-y)**2+1e-10}
+  for(let i=0;i<n;i++){const bad=tris.filter(t=>inside(t,p[i])),edge=new Map();bad.forEach(t=>{for(let j=0;j<3;j++){const a=t[j],b=t[(j+1)%3],k=[Math.min(a,b),Math.max(a,b)].join(',');edge.set(k,edge.has(k)?null:[a,b])}});tris=tris.filter(t=>!bad.includes(t));for(const e of edge.values())if(e)tris.push([...e,i]);}return tris.filter(t=>t.every(i=>i<n)).map(t=>t.map(i=>points[i]));
+ }
+ function makePieces(){pieces.forEach(p=>{glass.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose()});pieces.length=0;const points=[[0,0],[1,0],[1,1],[0,1],[focus.x,focus.y]];
+  for(let i=1;i<9;i++){points.push([i/9,0],[i/9,1],[0,i/9],[1,i/9])}for(let r=1;r<=6;r++)for(let i=0;i<15+r*2;i++){const a=i/(15+r*2)*TAU+(hash(i*7+r*13+900)-.5)*.35,rr=Math.pow(r,1.7)*.04*(.75+hash(i+r*31)*.5),x=focus.x+Math.cos(a)*rr,y=focus.y+Math.sin(a)*rr*1.2;if(x>.015&&x<.985&&y>.015&&y<.985)points.push([x,y])}
+  for(const tri of triangulate(points)){const id=pieces.length,cx=tri.reduce((s,p)=>s+p[0],0)/3,cy=tri.reduce((s,p)=>s+p[1],0)/3;const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(tri.flatMap(p=>[(p[0]-cx)*2,(p[1]-cy)*2,0]),3));geo.setAttribute('uv',new T.Float32BufferAttribute(tri.flat(),2));geo.setAttribute('aBary',new T.Float32BufferAttribute([1,0,0,0,1,0,0,0,1],3));const mat=new T.ShaderMaterial({transparent:true,side:T.DoubleSide,depthTest:false,depthWrite:false,uniforms:{uMap:{value:snapshot.texture},uOpacity:{value:1},uEdge:{value:0},uSheen:{value:0},uSheenA:{value:0},uDim:{value:0}},vertexShader:'attribute vec3 aBary;varying vec2 vUv;varying vec3 vBary;void main(){vUv=uv;vBary=aBary;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec2 vUv;varying vec3 vBary;uniform sampler2D uMap;uniform float uOpacity,uEdge,uSheen,uSheenA,uDim;void main(){float m=min(vBary.x,min(vBary.y,vBary.z));float rim=1.-smoothstep(.0,.01,m),bevel=1.-smoothstep(.0,.07,m);vec2 o=vec2(.0025*bevel,0.);vec3 c=vec3(texture2D(uMap,vUv+o).r,texture2D(uMap,vUv).g,texture2D(uMap,vUv-o).b);c*=1.-bevel*.22-uDim;c+=vec3(.78,.92,1.)*rim*uEdge;c+=vec3(.9,.95,1.)*pow(max(0.,sin((vUv.x*1.3+vUv.y)*7.+uSheen)),18.)*.35*uSheenA;gl_FragColor=vec4(c,uOpacity);}'});const mesh=new T.Mesh(geo,mat);mesh.position.set(cx*2-1,cy*2-1,0);glass.add(mesh);pieces.push({mesh,cx,cy,id});}
+ }
+ makePieces();
+ const broken=new T.Mesh(new T.PlaneGeometry(5.6,3.73,60,60),portrait.material.clone());broken.material.depthTest=false;broken.material.uniforms.uDamage={value:0};broken.material.uniforms.uBrokenTime={value:0};broken.material.fragmentShader=broken.material.fragmentShader.replace('varying vec2 vUv;uniform sampler2D uMap;', 'varying vec2 vUv;uniform float uDamage,uBrokenTime;uniform sampler2D uMap;').replace('vec4 c=texture2D(uMap,vUv);', `vec2 P=vUv*vec2(4.2,2.8),ip=floor(P),fp=fract(P);float d1=8.,d2=8.;vec2 best=ip;
+for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j)),o=vec2(h(ip+g),h(ip+g+17.))*.8+.1,r=g+o-fp;float d=dot(r,r);if(d<d1){d2=d1;d1=d;best=ip+g;}else if(d<d2)d2=d;}
+float e=sqrt(d2)-sqrt(d1),beat=pow(max(0.,1.-fract(uBrokenTime*130./60.)),4.);
+vec2 off=(vec2(h(best+3.),h(best+9.))-.5)*.014*uDamage*(.65+.35*sin(uBrokenTime*.9+h(best)*6.));vec2 qq=vUv+off;float sp=(.0005+.0016*beat)*uDamage;
+vec4 c=texture2D(uMap,qq);c.r=texture2D(uMap,qq+vec2(sp,0.)).r;c.b=texture2D(uMap,qq-vec2(sp,0.)).b;
+float seam=1.-smoothstep(.0,.03,e),halo=exp(-e*26.),run=pow(max(0.,sin(e*3.-uBrokenTime*2.2+h(best)*9.)),24.);
+c.rgb*=1.-seam*.55*uDamage;c.rgb+=vec3(.66,.9,1.)*(seam*.85+halo*(.18+.3*beat)+run*halo*.5)*uDamage*step(.02,c.a);`);broken.renderOrder=11;scene.add(broken);broken.visible=false;
+ function reveal(t,px=innerWidth*.75,py=innerHeight*.5,isAuto=false){if(revealedAt!==null)return;revealedAt=t;focus.set(px/innerWidth,1-py/innerHeight);needsCapture=true;auto=isAuto;makePieces();}
+ function reset(){revealedAt=null;needsCapture=false;auto=false;broken.visible=false;}
+ function front(t){lastT=t;const w=windowAt(t,148,158.65,.45);broken.visible=w>.001;broken.position.copy(v3(innerWidth/innerHeight<.9?0:1.3,.5,-7.7).applyQuaternion(camera.quaternion).add(camera.position));broken.quaternion.copy(camera.quaternion);broken.scale.setScalar(innerWidth/innerHeight<.9?.82:1.12);broken.material.uniforms.uTime.value=t;broken.material.uniforms.uAlpha.value=w;broken.material.uniforms.uDamage.value=Math.min(1,Math.max(0,(t-148)/1.6));broken.material.uniforms.uBrokenTime.value=t;
+  if(t>=161.55&&revealedAt===null)reveal(161.55,innerWidth*.77,innerHeight*.46,true);
+ }
+ // Pre-compile every shader of the world behind the screen while the viewer is still on the title,
+ // so the switch at 02:28 does not stall the main thread for seconds.
+ function warm(){try{const vis=broken.visible;broken.visible=true;renderer.compile(scene,camera);broken.visible=vis;
+   [148.5,152,158,163,170,178,186,193,201].forEach(tt=>{movie.update(tt);renderer.compile(back,cam);});const hidden=[];[back,scene].forEach(r=>r.traverse(o=>{if(!o.visible){hidden.push(o);o.visible=true}}));renderer.compile(back,cam);renderer.compile(scene,camera);const bv=broken.visible;broken.visible=true;broken.material.uniforms.uAlpha.value=.01;renderer.setRenderTarget(target);renderer.render(back,cam);renderer.render(scene,camera);[150,170,190].forEach(tt=>runBack(tt));broken.visible=bv;hidden.forEach(o=>o.visible=false);
+   [150,170,190].forEach(tt=>runBack(tt));renderer.setRenderTarget(null);behindRenderedAt=null;movie.update(0);const progs=renderer.info.programs.slice();let k=0;const finish=()=>{const t0=performance.now();while(k<progs.length&&performance.now()-t0<12){try{progs[k].getUniforms()}catch(e){}k++}if(k<progs.length)setTimeout(finish,16);else console.log('warmed '+progs.length)};finish();}catch(e){console.warn('warm',e)}}
+ (window.requestIdleCallback||setTimeout)(()=>setTimeout(warm,300),{timeout:2500});
+ function runBack(t){behindRenderedAt=t;movie.update(t);
+  renderer.setRenderTarget(target);renderer.render(back,cam);const items=[localLyrics.mesh,lyricObjects.group,rhythmGame?.mesh,...touchEffects.roots()].filter(Boolean),parents=items.map(o=>o.parent);items.forEach(o=>overlay.add(o));renderer.autoClear=false;renderer.clearDepth();renderer.render(overlay,camera);renderer.autoClear=true;items.forEach((o,i)=>parents[i]?.add(o));
+ }
+ function composite(t){const size=renderer.getDrawingBufferSize(new T.Vector2());if(target.width!==size.x||target.height!==size.y){target.setSize(size.x,size.y);snapshot.setSize(size.x,size.y);if(revealedAt!==null&&t-revealedAt<1.9)needsCapture=true}
+  if(t>=158.4||revealedAt!==null)runBack(t);if(needsCapture){post.uniforms.uScene.value=rt.texture;postRender(snapshot);needsCapture=false;}
+  post.uniforms.uScene.value=revealedAt!==null?target.texture:rt.texture;postRender(null);
+  if(revealedAt!==null){const age=t-revealedAt;if(age>=0&&age<1.9){pieces.forEach(p=>{const dx=p.cx-focus.x,dy=p.cy-focus.y,r=Math.hypot(dx,dy)+1e-4,ux=dx/r,uy=dy/r,hs=hash(p.id),d=Math.max(0,age-.2-r*.25),sp=.35+hs*.7,out=d*sp+d*d*(.8+hs);
+ // crack spreads from the impact first, then shards release in rings, catch light as they turn, and fall away
+ const crack=smooth((age*5.5-r*2.2));p.mesh.position.set(p.cx*2-1+ux*out*1.6,p.cy*2-1+uy*out*1.3-d*d*1.9,0);p.mesh.rotation.set(d*(hash(p.id+5)-.5)*3,d*(hash(p.id+15)-.5)*3,d*(hash(p.id+25)-.5)*1.4);p.mesh.scale.setScalar(1+d*(hs>.85?1.1:.1));
+ const u=p.mesh.material.uniforms;u.uOpacity.value=1-smooth((age-1.0-hs*.3)/.6);u.uEdge.value=crack*(1-smooth((d-.25)/.5))*1.1;u.uSheen.value=d*7+hs*6;u.uSheenA.value=smooth(d/.12);u.uDim.value=smooth(d/.6)*.25;});glass.position.set(Math.sin(age*90)*Math.exp(-age*10)*.008,Math.cos(age*77)*Math.exp(-age*10)*.006,0);renderer.autoClear=false;renderer.clearDepth();renderer.render(glass,glassCam);renderer.autoClear=true;}}
+ }
+ return {front,composite,reveal,reset,validate(){return movie.validate()&&pieces.every(p=>p.mesh.position.toArray().every(Number.isFinite))},state:()=>({revealedAt,actorAsset:'reach',movie:movie.state(),behindRenderedAt,automatic:auto,behindTime:lastT>=148?lastT-148:null,brokenVisible:broken.visible,pieces:pieces.length,guestVisibility:[guestFish.visible,guestLady.visible]})};
+}

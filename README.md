@@ -1,12 +1,25 @@
 # world.execute(me); · 可交互 MV
 
+| 版本 | 游玩下载 | 源码与介绍 |
+| --- | --- | --- |
+| **2.0 · GPT × Claude 合作版** | [下载 2.0](https://github.com/qianlantut/world-execute-me-interactive-mv/releases/download/v2.0.0/world-execute-me-v2.0.0.zip) | [进入 v2](v2/README.md) |
+| **1.0 · Astra 原版** | [下载 1.0](https://github.com/qianlantut/world-execute-me-interactive-mv/releases/download/v1.0.0/world-execute-me.zip) | 仓库根目录；[原始标签](https://github.com/qianlantut/world-execute-me-interactive-mv/tree/v1.0.0) |
+
+两个版本分别保留，旧版下载不受新版影响。想体验新版，请使用上表的 2.0 下载。
+
+---
+
+## 以下为 1.0 原版说明
+
+# world.execute(me); · 可交互 MV
+
 ![world.execute(me); — GPT 6 Astra](docs/cover.png)
 
 把歌词里的动作交给鼠标：接通电源、填入 data、切开果实、跨越年份、擦除报错，再在倒数结束前触碰最后一个选项。
 
 音乐一直向前。互动会改变当前画面，但不会暂停音乐，也没有分支剧情；不操作时，演出仍会完整进行。
 
-**[下载可直接游玩的交互版](https://github.com/qianlantut/world-execute-me-interactive-mv/releases/latest/download/world-execute-me.zip)** · [发行记录](https://github.com/qianlantut/world-execute-me-interactive-mv/releases) · [操作与演出说明](docs/PLAYING.md) · [素材与署名](docs/ASSETS.md)
+**[下载可直接游玩的交互版](https://github.com/qianlantut/world-execute-me-interactive-mv/releases/download/v1.0.0/world-execute-me.zip)** · [发行记录](https://github.com/qianlantut/world-execute-me-interactive-mv/releases) · [操作与演出说明](docs/PLAYING.md) · [素材与署名](docs/ASSETS.md)
 
 ## 怎么玩
 
